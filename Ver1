@@ -1,0 +1,134 @@
+#include "opencv\cv.h"
+#include "opencv\highgui.h"
+#include "opencv2/opencv.hpp"
+
+using namespace cv;
+#include <istream>
+#include <stdint.h>
+
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+
+//IplImage* frame = 0;
+//IplImage* frame0 = 0;
+//IplImage* src = 0;
+bool ferst = true;
+Mat frame, src;
+Mat frame0;
+IplImage* dst = 0;
+
+inline bool isBlack(int x, uint8_t *row)
+{
+	int r = row[3 * x + 2];
+	int g = row[3 * x + 1];
+	int b = row[3 * x + 0];
+
+	return ((b*0.0722 + g*0.7152 + r*0.2126) < 60);
+}
+
+int main(int argc, char** argv)
+{
+	// имя файла задаётся первым параметром
+	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p8.avi";
+
+	printf("[i] file: %s\n", filename);
+
+	// окно для отображения картинки
+	//cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
+
+	// получаем информацию о видео-файле
+	CvCapture* capture = cvCreateFileCapture(filename);
+
+	
+	while (1){
+		// получаем следующий кадр
+		frame = cvQueryFrame(capture);
+		// здесь можно вставить процедуру обработки
+		/*if (!frame) {
+			break;
+		}*/
+		
+		src = frame;
+
+		if (ferst == false)
+		{
+			Mat img1, img2;
+			cvtColor(frame0, img1, CV_BGR2GRAY);
+			cvtColor(src, img2, CV_BGR2GRAY);
+
+
+			double cm1[3][3] = { { 8.941981e+02, 0.000000e+00, 6.601406e+02 }, { 0.000000e+00, 8.927151e+02, 2.611004e+02 }, { 0.000000e+00, 0.000000e+00, 1.000000e+00 } };
+			double cm2[3][3] = { { 8.800704e+02, 0.000000e+00, 6.635881e+02 }, { 0.000000e+00, 8.798504e+02, 2.690108e+02 }, { 0.000000e+00, 0.000000e+00, 1.000000e+00 } };
+			double d1[1][5] = { { -3.695739e-01, 1.726456e-01, -1.281525e-03, 1.188796e-03, -4.284730e-02 } };
+			double d2[1][5] = { { -3.753454e-01, 1.843265e-01, -1.307069e-03, 2.190397e-03, -4.989103e-02 } };
+
+			Mat CM1(3, 3, CV_64FC1, cm1);
+			Mat CM2(3, 3, CV_64FC1, cm2);
+			Mat D1(1, 5, CV_64FC1, d1);
+			Mat D2(1, 5, CV_64FC1, d2);
+
+			double r[3][3] = { { 9.998381e-01, 1.610234e-02, 8.033237e-03 }, { -1.588968e-02, 9.995390e-01, -2.586908e-02 }, { -8.446087e-03, 2.573724e-02, 9.996331e-01 } };
+			double t[3][4] = { { -5.706425e-01 }, { 8.447320e-03 }, { 1.235975e-02 } };
+
+			Mat R(3, 3, CV_64FC1, r);
+			Mat T(3, 1, CV_64FC1, t);
+
+			Mat R1, R2, T1, T2, Q, P1, P2;
+
+			stereoRectify(CM1, D1, CM2, D2, img1.size(), R, T, R1, R2, P1, P2, Q);
+
+			Mat map11, map12, map21, map22;
+			Size img_size = img1.size();
+			initUndistortRectifyMap(CM1, D1, R1, P1, img_size, CV_16SC2, map11, map12);
+			initUndistortRectifyMap(CM2, D2, R2, P2, img_size, CV_16SC2, map21, map22);
+			Mat img1r, img2r;
+			remap(img1, img1r, map11, map12, INTER_LINEAR);
+			remap(img2, img2r, map21, map22, INTER_LINEAR);
+
+			int sadSize = 3;
+			StereoBM sbm;
+			sbm.state->SADWindowSize = 5;
+			sbm.state->numberOfDisparities = 112;  
+			sbm.state->preFilterSize = 5;
+			sbm.state->preFilterCap = 61;
+			sbm.state->minDisparity = -39;          
+			sbm.state->textureThreshold = 507; 
+			sbm.state->uniquenessRatio = 0;    
+			sbm.state->speckleWindowSize = 0;  
+			sbm.state->speckleRange = 1;
+			
+
+			Mat disp, disp8;
+			sbm(img1, img2, disp);
+
+			normalize(disp, disp8, 0, 255, CV_MINMAX, CV_8U);
+
+			Mat points, points1;
+			reprojectImageTo3D(disp, points, Q, true);
+			cvtColor(points, points1, CV_BGR2GRAY);
+			src = points1;
+		}
+
+
+
+		// показываем кадр 		
+		imshow("Video", src);
+
+		if (ferst == true) ferst = false;
+		frame.copyTo(frame0);
+
+		char c = cvWaitKey(0);
+		if (c == 27) { // если нажата ESC - выходим
+			break;
+		}
+	}
+
+	// освобождаем ресурсы
+	cvReleaseCapture(&capture);
+	// удаляем окно
+	cvDestroyWindow("original");
+	return 0;
+}
+
