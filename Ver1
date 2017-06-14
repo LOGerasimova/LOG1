@@ -55,8 +55,18 @@ int main(int argc, char** argv)
 		if (ferst == false)
 		{
 			Mat img1, img2;
-			cvtColor(frame0, img1, CV_BGR2GRAY);
-			cvtColor(src, img2, CV_BGR2GRAY);
+			
+			if (frame0.empty())
+				break;
+			else if (frame0.channels()>1)
+				cvtColor(frame0, img1, CV_BGR2GRAY);
+			else img1 = frame0;
+
+			if (src.empty())
+				break;
+			else if (src.channels()>1)
+				cvtColor(src, img2, CV_BGR2GRAY);
+			else img2 = src;
 
 
 			double cm1[3][3] = { { 8.941981e+02, 0.000000e+00, 6.601406e+02 }, { 0.000000e+00, 8.927151e+02, 2.611004e+02 }, { 0.000000e+00, 0.000000e+00, 1.000000e+00 } };
