@@ -55,29 +55,24 @@ int main(int argc, char** argv)
 		{
 			Mat img1, img2;
 			
-			for (int y = 300; y < 480; y++)
+			for (int y = 0; y < 480; y++)
 			{
-				for (int i = 100; i < 500; i++)
+				for (int i = 0; i < 500; i++)
 				{
-					if (isBlack111(y, i, frame0))
-					{
-						frame0.at<Vec3b>(y, i)[0] = 200;
-						frame0.at<Vec3b>(y, i)[1] = 200;
-						frame0.at<Vec3b>(y, i)[2] = 200;
-					}
+					if (isBlack111(y, i, frame0)) array[i][y] = 1;
+					else array[i][y] = 0;
+					std::cout << array[i][y];
 				}
 			}
+
 
 			for (int y = 300; y < 480; y++)
 			{
 				for (int i = 100; i < 500; i++)
 				{
-					if (isBlack111(y, i, src))
-					{
-						src.at<Vec3b>(y, i)[0] = 200;
-						src.at<Vec3b>(y, i)[1] = 200;
-						src.at<Vec3b>(y, i)[2] = 200;
-					}
+					if (isBlack111(y, i, frame0)) array1[i][y] = 1;
+					else array1[i][y] = 0;
+					std::cout << array1[i][y];
 				}
 			}
 			
