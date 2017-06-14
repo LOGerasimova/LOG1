@@ -18,7 +18,7 @@ bool ferst = true;
 Mat frame, src;
 Mat frame0;
 IplImage* dst = 0;
-int array[639][479], array1[639][479];
+int array[639][479];
 
 inline bool isBlack111(int y, int i, Mat img)
 {
@@ -55,28 +55,6 @@ int main(int argc, char** argv)
 		if (ferst == false)
 		{
 			Mat img1, img2;
-			
-			for (int y = 0; y < 480; y++)
-			{
-				for (int i = 0; i < 500; i++)
-				{
-					if (isBlack111(y, i, frame0)) array[i][y] = 1;
-					else array[i][y] = 0;
-					std::cout << array[i][y];
-				}
-			}
-
-
-			for (int y = 300; y < 480; y++)
-			{
-				for (int i = 100; i < 500; i++)
-				{
-					if (isBlack111(y, i, frame0)) array1[i][y] = 1;
-					else array1[i][y] = 0;
-					std::cout << array1[i][y];
-				}
-			}
-			
 			cvtColor(frame0, img1, CV_BGR2GRAY);
 			cvtColor(src, img2, CV_BGR2GRAY);
 
@@ -131,6 +109,16 @@ int main(int argc, char** argv)
 			reprojectImageTo3D(disp, points, Q, true);
 			cvtColor(points, points1, CV_BGR2GRAY);
 			src = points1;
+			
+			for (int y = 0; y < 480; y++)
+			{
+				for (int i = 0; i < 640; i++)
+				{
+					if (isBlack111(y, i, points1)) array[i][y] = 1;
+					else array[i][y] = 0;
+					std::cout << array[i][y];
+				}
+			}
 		}
 
 
