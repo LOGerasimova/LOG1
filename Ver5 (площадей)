@@ -1,0 +1,217 @@
+#include "opencv\cv.h"
+#include "opencv\highgui.h"
+
+#include "opencv2/opencv.hpp"
+
+using namespace cv;
+#include <istream>
+#include <stdint.h>
+
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+
+using namespace cv;
+
+IplImage* frame = 0;
+IplImage* frame0 = 0;
+IplImage* src = 0;
+IplImage* src1 = 0;
+IplImage* src0 = 0;
+bool ferst = true;
+IplImage* dst = 0;
+
+inline bool isBlack(int x, uint8_t *row)
+{
+	int r = row[3 * x + 2];
+	int g = row[3 * x + 1];
+	int b = row[3 * x + 0];
+
+	return ((b*0.0722 + g*0.7152 + r*0.2126) < 60);
+}
+
+
+int main(int argc, char** argv)
+{
+	// имя файла задаётся первым параметром
+	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p26.avi";
+
+	printf("[i] file: %s\n", filename);
+
+	// окно для отображения картинки
+	cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
+
+	// получаем информацию о видео-файле
+	CvCapture* capture = cvCreateFileCapture(filename);
+
+	int x = argc >= 3 ? atoi(argv[2]) : 170;
+	int y = argc >= 4 ? atoi(argv[3]) : 434;
+	int width = argc >= 5 ? atoi(argv[4]) : 300;
+	int height = argc >= 6 ? atoi(argv[5]) : 45;
+	int add = argc >= 7 ? atoi(argv[6]) : 400;
+	double area3 = 0, area4 = 0, dif = 0;
+	Mat orig;
+	int blDotX3 = 0, blDotX4 = 0, Xco = 0, Xco2 = 0, count = 0;
+	uint8_t *row2, YYY;
+	int XX1 = 0, XX2 = 0;
+	int YY = 0;
+
+	//int count = 0;
+	//int y = 420;
+	int widthROI = 260;
+	int heightROI = 30;
+	int XROI = 170;
+	double area1 = 0, area2 = 0, area2l = 0, area2r = 0, proc = 0;
+
+
+	while (1){
+		// получаем следующий кадр
+		frame = cvQueryFrame(capture);
+		// здесь можно вставить процедуру обработки
+		if (!frame) {
+			break;
+		}
+
+		dst = cvCloneImage(frame);
+		cvSetImageROI(dst, cvRect(x, y, width, height));
+
+		//convert image to matrix
+		orig = cvarrToMat(dst);
+
+		//save the row from matrix with x=44
+		row2 = (uint8_t*)orig.ptr<uint8_t>(44);
+
+		//set the starting point of searching black point in bottom line of ROI
+		blDotX3 = 0;
+		blDotX4 = width - 1;
+
+		//finding black point from the left (from 0 to ..+)
+		while (!isBlack(blDotX3, row2))
+		{
+			blDotX3++;
+		}
+
+		//finding black point from the right (from 200 to ...-)
+		while (!isBlack(blDotX4, row2))
+		{
+			blDotX4--;
+		}
+
+		// center of black line
+		Xco2 = (blDotX3 + blDotX4) / 2;
+
+		if (count == 0) {
+			count++;
+		}
+
+		XX1 = x + blDotX3 + 30 - width / 2;
+
+		if (XX2 - XX1 > 50) XX1 = XX2;
+
+		//set image ROI
+		cvSetImageROI(frame, cvRect(XX1, 435, 300, 45));
+
+		//color ROI in blue
+		cvAddS(frame, cvScalar(200), frame);
+
+		//reset ROI
+		cvResetImageROI(frame);
+
+		//if we have first frame of video
+		if (count == 1) {
+			area1 = area2; count++;
+		}
+
+		//calculating diffarance
+		dif = fabs(area2 - area1);
+		proc = dif / area2 * 100;
+
+		src1 = cvCloneImage(frame);
+
+
+			//set image ROI
+			cvSetImageROI(frame, cvRect(XX1, 435, 300, 45));
+
+			//color ROI in blue
+			//cvAddS(frame, cvScalar(200), frame);
+
+			//reset ROI
+			//cvResetImageROI(frame);
+
+			//if we have first frame of video
+			if (count == 1) {
+				area1 = area2; count++;
+			}
+
+			//calculating diffarance
+			dif = fabs(area2 - area1);
+			proc = dif / area2 * 100;
+
+			int Count = 0, z, Count1 = 0;
+			z = XX1 + 300;
+
+			//peremennaya dlya ploshyadi
+			CvConnectedComp comp;
+
+			//zalivaem oblast krasnim sleva ot linii
+			cvFloodFill(frame, cvPoint(10, 28), CV_RGB(255, 0, 0),
+				cvScalarAll(40),
+				cvScalarAll(40),
+				&comp,
+				CV_FLOODFILL_FIXED_RANGE + 8,
+				0);
+			area2l = comp.area;
+
+			//int xpoint = (widthROI - 20 < 0) ? 0 : widthROI - 20;
+
+			cvFloodFill(frame, cvPoint(widthROI - 20, heightROI - 1), CV_RGB(0, 255, 0),
+				cvScalarAll(40),
+				cvScalarAll(40),
+				&comp,
+				CV_FLOODFILL_FIXED_RANGE + 8,
+				0);
+			area2r = comp.area;
+
+			//budet ocenivatsya sumarnaya ploshyad'
+			area2 = area2l + area2r;
+
+			//reset ROI
+			cvResetImageROI(frame);
+
+			//if we have first frame of video
+			if (count == 0) {
+				area1 = area2; count++;
+			}
+
+			//calculating diffarance in procent
+			/*proc = fabs(area2 - area1) / area2 * 100;
+			if (proc > 3) {
+				break;
+			}*/
+
+			area1 = area2;
+
+
+		// показываем кадр 
+		//cvShowImage("original", src1);
+		cvShowImage("original", frame);
+
+
+		XX2 = XX1;
+
+		/*cvReleaseImage(&src);
+		cvReleaseImage(&src1);*/
+
+
+		char c = cvWaitKey(0);
+		if (c == 27) { // если нажата ESC - выходим
+			break;
+		}
+	}
+
+	// освобождаем ресурсы
+	cvReleaseCapture(&capture);
+	// удаляем окно
+	cvDestroyWindow("original");
+	return 0;
+}
