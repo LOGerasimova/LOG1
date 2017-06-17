@@ -10,8 +10,14 @@ using namespace cv;
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
+
+//IplImage* frame = 0;
+//IplImage* frame0 = 0;
+//IplImage* src = 0;
+bool ferst = true;
 Mat frame, gray;
 Mat frame0;
+//IplImage* dst = 0;
 
 inline bool isBlack(int x, uint8_t *row)
 {
@@ -22,6 +28,22 @@ inline bool isBlack(int x, uint8_t *row)
 	return ((b*0.0722 + g*0.7152 + r*0.2126) < 60);
 }
 
+inline bool isBlack111(int y, int i, Mat img)
+{
+	int b = img.at<Vec3b>(y, i)[0];
+	int r = img.at<Vec3b>(y, i)[2];
+	int g = img.at<Vec3b>(y, i)[1];
+	return ((b*0.0722 + g*0.7152 + r*0.2126) < 60);
+}
+
+inline bool isWhite111(int y, int i, Mat img)
+{
+	int b = img.at<Vec3b>(y, i)[0];
+	int r = img.at<Vec3b>(y, i)[2];
+	int g = img.at<Vec3b>(y, i)[1];
+	return ((b + g + r) > 470);
+}
+
 Mat src, src_gray;
 Mat x2y2, xy, mtrace, x_derivative, y_derivative, x2_derivative, y2_derivative,
 xy_derivative, x2g_derivative, y2g_derivative, xyg_derivative, dst, dst_norm, dst_norm_scaled;
@@ -29,20 +51,31 @@ int thresh = 128;
 char* corners_window = "Corners detected";
 void onTrackbar(int, void*);
 
+double area1 = 0, area2 = 0, area3 = 0, area4 = 0, dif = 0, proc = 0;
+Mat orig;
+int blDotX3 = 0, blDotX4 = 0, Xco = 0, Xco2 = 0, count = 0;
+uint8_t *row2, YYY;
+int XX1 = 0, XX2 = 0, z = 0;
+int YY = 0;
+int x = 170, y = 434, width = 300, height = 45;
 
 int main(int argc, char** argv)
 {
 	// имя файла задаётся первым параметром
-	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p8.avi";
+	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p3.avi";
 
 	printf("[i] file: %s\n", filename);
-
-	// окно для отображения картинки
-	//cvNamedWindow("original", CV_WINDOW_AUTOSIZE);
 
 	// получаем информацию о видео-файле
 	CvCapture* capture = cvCreateFileCapture(filename);
 
+
+	//int x = argc >= 3 ? atoi(argv[2]) : 170;
+	//int y = argc >= 4 ? atoi(argv[3]) : 434;
+	//int width = argc >= 5 ? atoi(argv[4]) : 300;
+	//int height = argc >= 6 ? atoi(argv[5]) : 45;
+	int add = argc >= 7 ? atoi(argv[6]) : 400;
+	
 
 	while (1){
 		// получаем следующий кадр
@@ -51,12 +84,52 @@ int main(int argc, char** argv)
 		/*if (!frame) {
 		break;
 		}*/
+		
+		frame.copyTo(src);
+
+		blDotX3 = x;
+		blDotX4 = x + width - 1;
+
+		while (!isBlack111(y, blDotX3, src))
+		{
+			blDotX3++;
+		}
+
+		while (!isBlack111(y, blDotX4, src))
+		{
+			blDotX4--;
+		}
+
+		Xco2 = (blDotX3 + blDotX4) / 2;
+
+		XX1 = blDotX3 + 30 - width / 2;
+
+		if (XX2 - XX1 > 50) XX1 = XX2;
+
+		z = XX1 + 300;
+
+		//for (int y = 435; y < 480; y = y + 4)
+		//{
+		//	for (int i = XX1; i < z; i = i + 4)
+		//	{
+		//		if (isWhite111(y, i, src))
+		//		{
+		//			//Count1++;
+		//			src.at<Vec3b>(y, i)[0] = 0;
+		//			src.at<Vec3b>(y, i)[1] = 0;
+		//			src.at<Vec3b>(y, i)[2] = 255;
+		//		}
+		//	}
+		//}
+
 		cvtColor(frame, src_gray, COLOR_BGR2GRAY);
 		Canny(frame, src_gray, 100, 200, 3);
+		printf("[i] XX1:  %d\n", XX1);
+		printf("[i] z:  %d\n", z);
 
 		onTrackbar(thresh, 0);
-
-
+		x = XX1;
+		XX2 = XX1;
 		char c = cvWaitKey(0);
 		if (c == 27) { // если нажата ESC - выходим
 			break;
@@ -70,44 +143,83 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+int arr1[10000], arr2[10000];
 
 void onTrackbar(int, void*){
+	//cvtColor(src, src_gray, CV_BGR2GRAY);
+	//Step one
 	//to calculate x and y derivative of image we use Sobel function
+	//Sobel( srcimage, dstimage, depthofimage -1 means same as input, xorder 1,yorder 0,kernelsize 3, BORDER_DEFAULT);
 	Sobel(src_gray, x_derivative, CV_32FC1, 1, 0, 3, BORDER_DEFAULT);
 	Sobel(src_gray, y_derivative, CV_32FC1, 0, 1, 3, BORDER_DEFAULT);
-	
-  //calculate other three images in M
+	//Step Two calculate other three images in M
 	pow(x_derivative, 2.0, x2_derivative);
 	pow(y_derivative, 2.0, y2_derivative);
 	multiply(x_derivative, y_derivative, xy_derivative);
-	
-  //apply gaussain
+	//step three apply gaussain
 	GaussianBlur(x2_derivative, x2g_derivative, Size(7, 7), 2.0, 0.0, BORDER_DEFAULT);
 	GaussianBlur(y2_derivative, y2g_derivative, Size(7, 7), 0.0, 2.0, BORDER_DEFAULT);
 	GaussianBlur(xy_derivative, xyg_derivative, Size(7, 7), 2.0, 2.0, BORDER_DEFAULT);
-	
-  //calculating R with k=0.04
+	//forth step calculating R with k=0.04
 	multiply(x2g_derivative, y2g_derivative, x2y2);
 	multiply(xyg_derivative, xyg_derivative, xy);
 	pow((x2g_derivative + y2g_derivative), 2.0, mtrace);
 	dst = (x2y2 - xy) - 0.04 * mtrace;
-	
-  //normalizing result from 0 to 255
+	//normalizing result from 0 to 255
 	normalize(dst, dst_norm, 0, 255, NORM_MINMAX, CV_32FC1, Mat());
 	convertScaleAbs(dst_norm, dst_norm_scaled);
-	
-  // Drawing a circle around corners
-	for (int j = 0; j < src_gray.rows; j++)
+	// Drawing a circle around corners
+	//for (int j = 0; j < src_gray.rows; j++)
+	//{
+	//	for (int i = 0; i < src_gray.cols; i++)
+	//	{
+	//		if ((int)dst_norm.at<float>(j, i) > thresh)
+	//		{
+	//			//if (!isBlack111(j, i, frame))
+	//			circle(src_gray, Point(i, j), 5, Scalar(255), 2, 8, 0);
+	//		}
+	//	}
+	//}
+
+	int y, count = 0;
+	int o = 0, p = 0;
+
+	for (int j = 10; j < src_gray.rows-10; j++)
 	{
-		for (int i = 0; i < src_gray.cols; i++)
+		for (int i = 10; i < src_gray.cols; i++)
 		{
 			if ((int)dst_norm.at<float>(j, i) > thresh)
 			{
-				circle(src_gray, Point(i, j), 5, Scalar(255), 2, 8, 0);
+				/*if (j > 10)
+				{*/
+					arr1[o] = j;
+					arr2[o] = i;
+					o++;
+					count++;
+				//}
+
 			}
 		}
+
 	}
-	
+
+	int Ver1, Ver2;
+
+	for (int r = 0; r < count; r++)
+	{
+		Ver1 = arr1[r];
+		Ver2 = arr2[r];
+		if ((!isBlack111(y = Ver1 + 5, Ver2, src) && !isBlack111(y = Ver1 - 5, Ver2, src)) || (!isWhite111(y = Ver1 + 5, Ver2, src) && !isWhite111(y = Ver1 - 5, Ver2, src)))
+		{
+			circle(src, Point(Ver2, Ver1), 5, Scalar(255), 2, 8, 0);
+			if (Ver1 > 400 && Ver1<480 && Ver2>(XX1+20) && Ver2<(z-20)) 
+				printf("[i] Error:  %d\n", "Препятствие");
+			//printf("[i] XX1:  %d\n", XX1);
+		}
+	}
+
+	//(!isBlack111(y = Ver1 + 5, Ver2, src) && !isBlack111(y = Ver1 - 5, Ver2, src)) || 
+	// Showing the result
 	namedWindow(corners_window, CV_WINDOW_AUTOSIZE);
-	imshow(corners_window, src_gray);
+	imshow(corners_window, src);
 }
