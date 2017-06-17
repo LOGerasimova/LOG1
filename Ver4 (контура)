@@ -1,24 +1,13 @@
-#include <opencv\cv.h>
-#include <opencv\highgui.h>
-#include <opencv2\opencv.hpp>
-//#include <opencv2\videoio.hpp>
-#include <opencv2\imgproc.hpp>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include <opencv2/opencv.hpp>
 #include <stdlib.h>
 #include <stdio.h>
 using namespace cv;
 using namespace std;
 
-#include "opencv\cv.h"
-#include "opencv\highgui.h"
-
-#include "opencv2/opencv.hpp"
-
 #include <istream>
 #include <stdint.h>
-
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 
 
 IplImage* image = 0;
@@ -98,7 +87,11 @@ newvid:
 		cvResetImageROI(frame);
 		orig = cvarrToMat(dst);
 		orig = cvarrToMat(dst);
-		cont = cvCloneImage(&(IplImage)orig);
+
+		//cont = cvCloneImage(&(IplImage)orig);
+
+		cont = new IplImage(orig);
+
 		row = (uint8_t*)orig.ptr<uint8_t>(1);
 		row2 = (uint8_t*)orig.ptr<uint8_t>(53);
 		if (start == 1)
@@ -178,7 +171,8 @@ newvid:
 		cvtColor(img2, gray2, CV_BGR2GRAY);
 		Canny(gray2, edge, 50, 150, 3);
 		edge.convertTo(draw, CV_8U);
-		bin = cvCloneImage(&(IplImage)draw);
+		//bin = cvCloneImage(&(IplImage)draw);
+		bin = new IplImage(draw);
 		//cvShowImage("bin", bin);
 		int contoursCont = cvFindContours(bin, storage, &contours, sizeof(CvContour), CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
 		if (contours)
@@ -206,12 +200,14 @@ newvid:
 
 					}
 				}
-				cvWaitKey(0);
+
 				cvShowImage(names[u], frame);
+				cvWaitKey(0);
 			}
 		}
 		else {
 			cvShowImage(names[u], frame);
+			cvWaitKey(0);
 			x = defx;
 			y = defy;
 		}
