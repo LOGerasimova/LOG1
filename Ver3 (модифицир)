@@ -21,6 +21,16 @@ IplImage* src0 = 0;
 bool ferst = true;
 IplImage* dst = 0;
 
+
+inline bool isBlack(int x, uint8_t *row)
+{
+	int r = row[3 * x + 2];
+	int g = row[3 * x + 1];
+	int b = row[3 * x + 0];
+
+	return ((b*0.0722 + g*0.7152 + r*0.2126) < 60);
+}
+
 inline bool isBlack111(int y, int i, Mat img)
 {
 	int b = img.at<Vec3b>(y, i)[0];
