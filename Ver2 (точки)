@@ -62,7 +62,7 @@ int x = 170, y = 434, width = 300, height = 45;
 int main(int argc, char** argv)
 {
 	// имя файла задаётся первым параметром
-	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p3.avi";
+	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p2.avi";
 
 	printf("[i] file: %s\n", filename);
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 	//int width = argc >= 5 ? atoi(argv[4]) : 300;
 	//int height = argc >= 6 ? atoi(argv[5]) : 45;
 	int add = argc >= 7 ? atoi(argv[6]) : 400;
-	
+
 
 	while (1){
 		// получаем следующий кадр
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 		/*if (!frame) {
 		break;
 		}*/
-		
+
 		frame.copyTo(src);
 
 		blDotX3 = x;
@@ -108,19 +108,19 @@ int main(int argc, char** argv)
 
 		z = XX1 + 300;
 
-		//for (int y = 435; y < 480; y = y + 4)
-		//{
-		//	for (int i = XX1; i < z; i = i + 4)
-		//	{
-		//		if (isWhite111(y, i, src))
-		//		{
-		//			//Count1++;
-		//			src.at<Vec3b>(y, i)[0] = 0;
-		//			src.at<Vec3b>(y, i)[1] = 0;
-		//			src.at<Vec3b>(y, i)[2] = 255;
-		//		}
-		//	}
-		//}
+		for (int y = 435; y < 480; y = y + 4)
+		{
+			for (int i = XX1; i < z; i = i + 4)
+			{
+				if (isBlack111(y, i, src))
+				{
+					//Count1++;
+					src.at<Vec3b>(y, i)[0] = 0;
+					src.at<Vec3b>(y, i)[1] = 0;
+					src.at<Vec3b>(y, i)[2] = 255;
+				}
+			}
+		}
 
 		cvtColor(frame, src_gray, COLOR_BGR2GRAY);
 		Canny(frame, src_gray, 100, 200, 3);
@@ -181,10 +181,10 @@ void onTrackbar(int, void*){
 	//	}
 	//}
 
-	int y, count = 0;
+	int y1, y2, count = 0;
 	int o = 0, p = 0;
 
-	for (int j = 10; j < src_gray.rows-10; j++)
+	for (int j = 10; j < src_gray.rows - 10; j++)
 	{
 		for (int i = 10; i < src_gray.cols; i++)
 		{
@@ -192,10 +192,10 @@ void onTrackbar(int, void*){
 			{
 				/*if (j > 10)
 				{*/
-					arr1[o] = j;
-					arr2[o] = i;
-					o++;
-					count++;
+				arr1[o] = j;
+				arr2[o] = i;
+				o++;
+				count++;
 				//}
 
 			}
@@ -209,16 +209,18 @@ void onTrackbar(int, void*){
 	{
 		Ver1 = arr1[r];
 		Ver2 = arr2[r];
-		if ((!isBlack111(y = Ver1 + 5, Ver2, src) && !isBlack111(y = Ver1 - 5, Ver2, src)) || (!isWhite111(y = Ver1 + 5, Ver2, src) && !isWhite111(y = Ver1 - 5, Ver2, src)))
+		y1 = Ver1 + 5;
+		y2 = Ver1 - 5;
+		if (!isBlack111(y1, Ver2, src) && !isBlack111(y2, Ver2, src)) 
 		{
 			circle(src, Point(Ver2, Ver1), 5, Scalar(255), 2, 8, 0);
-			if (Ver1 > 400 && Ver1<480 && Ver2>(XX1+20) && Ver2<(z-20)) 
+			if (Ver1 > 400 && Ver1<480 && Ver2>(XX1 + 20) && Ver2<(z - 20))
 				printf("[i] Error:  %d\n", "Препятствие");
 			//printf("[i] XX1:  %d\n", XX1);
 		}
 	}
 
-	//(!isBlack111(y = Ver1 + 5, Ver2, src) && !isBlack111(y = Ver1 - 5, Ver2, src)) || 
+	//|| (!isWhite111(y = Ver1 + 8, Ver2, src) && !isWhite111(y = Ver1 - 8, Ver2, src)) 
 	// Showing the result
 	namedWindow(corners_window, CV_WINDOW_AUTOSIZE);
 	imshow(corners_window, src);
