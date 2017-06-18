@@ -1,5 +1,6 @@
 #include "opencv\cv.h"
 #include "opencv\highgui.h"
+
 #include "opencv2/opencv.hpp"
 
 using namespace cv;
@@ -10,14 +11,13 @@ using namespace cv;
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
+using namespace cv;
 
-//IplImage* frame = 0;
-//IplImage* frame0 = 0;
+IplImage* frame = 0;
+IplImage* frame0 = 0;
 //IplImage* src = 0;
-bool ferst = true;
-Mat frame, gray;
-Mat frame0;
-//IplImage* dst = 0;
+IplImage* src1 = 0;
+
 
 inline bool isBlack(int x, uint8_t *row)
 {
@@ -44,7 +44,7 @@ inline bool isWhite111(int y, int i, Mat img)
 	return ((b + g + r) > 470);
 }
 
-Mat src, src_gray;
+Mat src, src_gray, img;
 Mat x2y2, xy, mtrace, x_derivative, y_derivative, x2_derivative, y2_derivative,
 xy_derivative, x2g_derivative, y2g_derivative, xyg_derivative, dst, dst_norm, dst_norm_scaled;
 int thresh = 128;
@@ -55,92 +55,132 @@ double area1 = 0, area2 = 0, area3 = 0, area4 = 0, dif = 0, proc = 0;
 Mat orig;
 int blDotX3 = 0, blDotX4 = 0, Xco = 0, Xco2 = 0, count = 0;
 uint8_t *row2, YYY;
-int XX1 = 0, XX2 = 0, z = 0;
+int XX1 = 0, XX2 = 0, z = 0, cadr = 0;
 int YY = 0;
-int x = 170, y = 434, width = 300, height = 45;
+int x = 170, y = 434, width = 200, height = 80;
 
 int main(int argc, char** argv)
 {
 	// имя файла задаётся первым параметром
-	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p2.avi";
+	char* filename = argc == 2 ? argv[1] : "C:\\Users\\Люба\\Desktop\\Универ\\4 курс\\ARDUINO\\hakaton_video\\p26.avi";
 
 	printf("[i] file: %s\n", filename);
-
 	// получаем информацию о видео-файле
 	CvCapture* capture = cvCreateFileCapture(filename);
-
-
-	//int x = argc >= 3 ? atoi(argv[2]) : 170;
-	//int y = argc >= 4 ? atoi(argv[3]) : 434;
-	//int width = argc >= 5 ? atoi(argv[4]) : 300;
-	//int height = argc >= 6 ? atoi(argv[5]) : 45;
-	int add = argc >= 7 ? atoi(argv[6]) : 400;
-
 
 	while (1){
 		// получаем следующий кадр
 		frame = cvQueryFrame(capture);
 		// здесь можно вставить процедуру обработки
-		/*if (!frame) {
-		break;
-		}*/
+		if (!frame) {
+			break;
+		}
 
-		frame.copyTo(src);
+		src1 = cvCloneImage(frame);
+		cvSetImageROI(frame, cvRect(x, y, width, height));
 
-		blDotX3 = x;
-		blDotX4 = x + width - 1;
+		//convert image to matrix
+		orig = cvarrToMat(frame);
 
-		while (!isBlack111(y, blDotX3, src))
+		//save the row from matrix with x=44
+		row2 = (uint8_t*)orig.ptr<uint8_t>(44);
+
+		//set the starting point of searching black point in bottom line of ROI
+		blDotX3 = 0;
+		blDotX4 = width - 1;
+
+		//finding black point from the left (from 0 to ..+)
+		while (!isBlack(blDotX3, row2))
 		{
 			blDotX3++;
 		}
 
-		while (!isBlack111(y, blDotX4, src))
+		//finding black point from the right (from 200 to ...-)
+		while (!isBlack(blDotX4, row2))
 		{
 			blDotX4--;
 		}
 
+		// center of black line
 		Xco2 = (blDotX3 + blDotX4) / 2;
 
-		XX1 = blDotX3 + 30 - width / 2;
+		if (count == 0) {
+			count++;
+		}
+
+		XX1 = x + blDotX3 + 30 - width / 2;
 
 		if (XX2 - XX1 > 50) XX1 = XX2;
 
-		z = XX1 + 300;
+		//set image ROI
+		cvSetImageROI(frame, cvRect(XX1, 400, 200, 80));
+
+		//color ROI in blue
+		cvAddS(frame, cvScalar(200), frame);
+
+		//reset ROI
+		cvResetImageROI(frame);
+
+		//src1 = cvCloneImage(frame);
+
+		//int Count = 0, Count1 = 0;
+		z = XX1 + 200;
+
+		img = cvarrToMat(frame);
+
+		/*for (int y = 435; y < 480; y = y + 4)
+		{
+			for (int i = XX1; i < z; i = i + 4)
+			{
+				if (isBlack111(y, i, img))
+				{
+					Count++;
+					img.at<Vec3b>(y, i)[0] = 0;
+					img.at<Vec3b>(y, i)[1] = 0;
+					img.at<Vec3b>(y, i)[2] = 255;
+				}
+			}
+		}
 
 		for (int y = 435; y < 480; y = y + 4)
 		{
 			for (int i = XX1; i < z; i = i + 4)
 			{
-				if (isBlack111(y, i, src))
+				if (isWhite111(y, i, img))
 				{
-					//Count1++;
-					src.at<Vec3b>(y, i)[0] = 0;
-					src.at<Vec3b>(y, i)[1] = 0;
-					src.at<Vec3b>(y, i)[2] = 255;
+					Count1++;
+					img.at<Vec3b>(y, i)[0] = 0;
+					img.at<Vec3b>(y, i)[1] = 0;
+					img.at<Vec3b>(y, i)[2] = 255;
 				}
 			}
-		}
+		}*/
 
-		cvtColor(frame, src_gray, COLOR_BGR2GRAY);
-		Canny(frame, src_gray, 100, 200, 3);
-		printf("[i] XX1:  %d\n", XX1);
-		printf("[i] z:  %d\n", z);
+		src = cvarrToMat(src1);
+
+		cvtColor(src, src_gray, COLOR_BGR2GRAY);
+		Canny(src, src_gray, 100, 200, 3);
+		//imshow("g", src_gray);
+		/*printf("[i] XX1:  %d\n", XX1);
+		printf("[i] z:  %d\n", z);*/
 
 		onTrackbar(thresh, 0);
+		printf("[i] cadr:  %d\n", cadr);
 		x = XX1;
 		XX2 = XX1;
 		char c = cvWaitKey(0);
 		if (c == 27) { // если нажата ESC - выходим
 			break;
 		}
+
+
+
 	}
 
 	// освобождаем ресурсы
 	cvReleaseCapture(&capture);
-	// удаляем окно
-	cvDestroyWindow("original");
 	return 0;
+
 }
 
 int arr1[10000], arr2[10000];
@@ -181,7 +221,7 @@ void onTrackbar(int, void*){
 	//	}
 	//}
 
-	int y1, y2, count = 0;
+	int y1, y2, y3, y4, count = 0;
 	int o = 0, p = 0;
 
 	for (int j = 10; j < src_gray.rows - 10; j++)
@@ -211,17 +251,19 @@ void onTrackbar(int, void*){
 		Ver2 = arr2[r];
 		y1 = Ver1 + 5;
 		y2 = Ver1 - 5;
-		if (!isBlack111(y1, Ver2, src) && !isBlack111(y2, Ver2, src)) 
+		y3 = XX1 + 20;
+		y4 = z - 20;
+		if (!isBlack111(y1, Ver2, img) && !isBlack111(y2, Ver2, img) && !isWhite111(y1, Ver2, img) && !isWhite111(y2, Ver2, img))
 		{
-			circle(src, Point(Ver2, Ver1), 5, Scalar(255), 2, 8, 0);
-			if (Ver1 > 400 && Ver1<480 && Ver2>(XX1 + 20) && Ver2<(z - 20))
+			circle(img, Point(Ver2, Ver1), 5, Scalar(255), 2, 8, 0);
+			if (Ver1 > 400 && Ver1<480 && Ver2>y3 && Ver2<y4)
 				printf("[i] Error:  %d\n", "Препятствие");
 			//printf("[i] XX1:  %d\n", XX1);
 		}
 	}
 
-	//|| (!isWhite111(y = Ver1 + 8, Ver2, src) && !isWhite111(y = Ver1 - 8, Ver2, src)) 
+	// || (!isWhite111(y1, Ver2, img) && !isWhite111(y2, Ver2, img)))
 	// Showing the result
 	namedWindow(corners_window, CV_WINDOW_AUTOSIZE);
-	imshow(corners_window, src);
+	imshow(corners_window, img);
 }
